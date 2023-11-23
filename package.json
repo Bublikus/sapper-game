@@ -1,6 +1,6 @@
 {
-  "name": "react-ts",
-  "version": "0.0.0",
+  "name": "sapper-game",
+  "version": "0.1.0",
   "private": true,
   "dependencies": {
     "@types/react": "^18.0.8",
