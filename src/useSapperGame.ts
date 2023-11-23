@@ -1,4 +1,10 @@
 import { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
+import {
+  trackFlagCell,
+  trackGameStart,
+  trackGameWin,
+  trackGameLoss,
+} from "./firebase";
 
 // Types
 
@@ -48,6 +54,7 @@ export const useSapperGame: UseSapperGame = (config = {}) => {
   const pressedCoords = useRef<Coords>();
   const pressTimer = useRef<ReturnType<typeof setTimeout>>();
   const isScroll = useRef(false);
+  const startGameTimeRef = useRef<number>(0);
 
   [matrix, setMatrix] = useState<Matrix>(getMatrix(areaSize, bombAmount));
 
@@ -122,6 +129,8 @@ export const useSapperGame: UseSapperGame = (config = {}) => {
   async function handleCellClick({ x, y }: Coords): Promise<void> {
     const cell = matrix?.[y][x];
     if (cell.isFlagged) return;
+    if (!startGameTimeRef.current) trackGameStart();
+    startGameTimeRef.current = startGameTimeRef.current || Date.now();
     await openCellsByCoords([{ x, y }]);
     checkIsEnd();
     checkisWin();
@@ -184,11 +193,13 @@ export const useSapperGame: UseSapperGame = (config = {}) => {
     const isWin = matrix.every(rowsHasWin);
     if (!isWin) return;
     flagAllBombs(bombs);
+    trackGameWin(Math.floor((Date.now() - startGameTimeRef.current) / 1000));
     setTimeout(() => (alert("😎 You win!"), resetGame()), OPEN_DURATION);
   }
 
   function checkIsEnd() {
     if (!isEnd()) return;
+    trackGameLoss(Math.floor((Date.now() - startGameTimeRef.current) / 1000));
     setTimeout(() => (alert("🤯 End game"), resetGame()), OPEN_DURATION);
   }
 
@@ -204,6 +215,7 @@ export const useSapperGame: UseSapperGame = (config = {}) => {
     const cell = newMatrix[y][x];
     cell.isFlagged = !cell.isFlagged;
     cell.value = isFlagValue(cell.value) ? getCellValue({ x, y }) : FLAG;
+    if (cell.isFlagged) trackFlagCell();
     setMatrix(newMatrix);
   }
 
@@ -221,6 +233,7 @@ export const useSapperGame: UseSapperGame = (config = {}) => {
     bombs = undefined;
     // @ts-ignore
     matrix = undefined;
+    startGameTimeRef.current = 0;
     pressedCoords.current = undefined;
     clearTimeout(pressTimer.current);
     setMatrix(getMatrix(areaSize, bombAmount));

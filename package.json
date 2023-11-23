@@ -6,6 +6,7 @@
     "@types/react": "^18.0.8",
     "@types/react-dom": "^18.0.2",
     "clsx": "^1.2.1",
+    "firebase": "^10.6.0",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
     "react-select": "^5.8.0"
