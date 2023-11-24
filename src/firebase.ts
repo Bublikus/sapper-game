@@ -1,6 +1,15 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics, logEvent } from "firebase/analytics";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  addDoc,
+  query,
+  orderBy,
+  limit,
+} from "firebase/firestore/lite";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -18,7 +27,49 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 const analytics = getAnalytics(app);
+
+// Requests
+
+export type Leader = {
+  id: string;
+  player: string;
+  time: number;
+  date: string;
+};
+
+export async function getLeaderboard(): Promise<Leader[]> {
+  try {
+    const colRef = collection(db, "leaderboard");
+    const q = query(colRef, orderBy("time", "asc"), limit(10));
+    const docsRef = await getDocs(q);
+
+    return (
+      docsRef.docs.map((doc) => ({ ...doc.data(), id: doc.id } as Leader)) || []
+    );
+  } catch (error) {
+    console.log(error);
+    return [];
+  }
+}
+
+export async function addPayerToLeaderboard(player: string, time: number) {
+  try {
+    const oneHour = 60 * 60 * 1000;
+    if (!player || !time || Number.isNaN(+time) || time >= oneHour) {
+      throw new Error("Invalid request body");
+    }
+    const docRef = await addDoc(collection(db, "leaderboard"), {
+      player,
+      time,
+      date: new Date().toISOString(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.log(error);
+  }
+}
 
 // Analytics
 

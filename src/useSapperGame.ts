@@ -1,10 +1,5 @@
 import { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
-import {
-  trackFlagCell,
-  trackGameStart,
-  trackGameWin,
-  trackGameLoss,
-} from "./firebase";
+import { trackFlagCell, trackGameStart } from "./firebase";
 
 // Types
 
@@ -26,8 +21,13 @@ type Cell = {
 };
 type Row = Cell[];
 type Matrix = Row[];
-type Config = { areaSize?: Size; bombAmount?: number };
-type UseSapperGame = (config?: Config) => { matrix: Matrix };
+type Config = {
+  areaSize?: Size;
+  bombAmount?: number;
+  onWinGame?(time: number): void;
+  onLostGame?(time: number): void;
+};
+type UseSapperGame = (config?: Config) => { matrix: Matrix; restart(): void };
 
 // Constants
 
@@ -37,7 +37,6 @@ const DEFAULT_AREA_SIZE: Size = { x: 10, y: 10 };
 const DEFAULT_BOMB_AMOUNT: number = 10;
 const DEFAULT_OPEN_DELAY: number = 50;
 const PRESS_DURATION: number = 500;
-const OPEN_DURATION: number = 1000;
 
 // Variables
 
@@ -50,6 +49,8 @@ let setMatrix: Dispatch<SetStateAction<Matrix>>;
 export const useSapperGame: UseSapperGame = (config = {}) => {
   const areaSize = config.areaSize ?? DEFAULT_AREA_SIZE;
   const bombAmount = config.bombAmount ?? DEFAULT_BOMB_AMOUNT;
+  const onWinGame = config.onWinGame ?? (() => {});
+  const onLostGame = config.onLostGame ?? (() => {});
 
   const pressedCoords = useRef<Coords>();
   const pressTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -193,14 +194,14 @@ export const useSapperGame: UseSapperGame = (config = {}) => {
     const isWin = matrix.every(rowsHasWin);
     if (!isWin) return;
     flagAllBombs(bombs);
-    trackGameWin(Math.floor((Date.now() - startGameTimeRef.current) / 1000));
-    setTimeout(() => (alert("😎 You win!"), resetGame()), OPEN_DURATION);
+    const time = Math.floor((Date.now() - startGameTimeRef.current) / 1000);
+    onWinGame(time);
   }
 
-  function checkIsEnd() {
+  async function checkIsEnd() {
     if (!isEnd()) return;
-    trackGameLoss(Math.floor((Date.now() - startGameTimeRef.current) / 1000));
-    setTimeout(() => (alert("🤯 End game"), resetGame()), OPEN_DURATION);
+    const time = Math.floor((Date.now() - startGameTimeRef.current) / 1000);
+    onLostGame(time);
   }
 
   function isEnd() {
@@ -265,5 +266,5 @@ export const useSapperGame: UseSapperGame = (config = {}) => {
     return [...Array(length)].map((_, i) => i);
   }
 
-  return { matrix };
+  return { matrix, restart: resetGame };
 };
