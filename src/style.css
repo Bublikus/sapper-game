@@ -254,7 +254,7 @@ button.value-8 {
   font-size: 16px;
 }
 
-.leaderboard thead {
+.leaderboard thead th {
   border-bottom: 1px solid white;
 }
 
