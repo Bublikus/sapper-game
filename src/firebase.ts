@@ -9,6 +9,7 @@ import {
   query,
   orderBy,
   limit,
+  where,
 } from "firebase/firestore/lite";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -35,14 +36,20 @@ const analytics = getAnalytics(app);
 export type Leader = {
   id: string;
   player: string;
+  level: string;
   time: number;
   date: string;
 };
 
-export async function getLeaderboard(): Promise<Leader[]> {
+export async function getLeaderboard(level: string): Promise<Leader[]> {
   try {
     const colRef = collection(db, "leaderboard");
-    const q = query(colRef, orderBy("time", "asc"), limit(10));
+    const q = query(
+      colRef,
+      where("level", "==", level), // Add a where clause to filter by the 'level' field
+      orderBy("time", "asc"), // Sorting by time in ascending order
+      limit(10) // Limiting the results to 10
+    );
     const docsRef = await getDocs(q);
 
     return (
@@ -54,15 +61,20 @@ export async function getLeaderboard(): Promise<Leader[]> {
   }
 }
 
-export async function addPayerToLeaderboard(player: string, time: number) {
+export async function addPayerToLeaderboard(
+  player: string,
+  time: number,
+  level: string
+) {
   try {
     const oneHour = 60 * 60 * 1000;
-    if (!player || !time || Number.isNaN(+time) || time >= oneHour) {
+    if (!level || !player || !time || Number.isNaN(+time) || time >= oneHour) {
       throw new Error("Invalid request body");
     }
     const docRef = await addDoc(collection(db, "leaderboard"), {
       player,
       time,
+      level,
       date: new Date().toISOString(),
     });
     return docRef.id;
@@ -81,21 +93,24 @@ export function trackFlagCell() {
   logEvent(analytics, "sapper_flag_cell");
 }
 
-export function trackGameWin(time: number) {
+export function trackGameWin(time: number, level: string) {
   logEvent(analytics, "sapper_game_win", {
     time,
+    level,
   });
 }
 
-export function trackGameLoss(time: number) {
+export function trackGameLoss(time: number, level: string) {
   logEvent(analytics, "sapper_game_loss", {
     time,
+    level,
   });
 }
 
-export function trackSignGame(time: number, player: string) {
+export function trackSignGame(time: number, player: string, level: string) {
   logEvent(analytics, "sapper_sign_game", {
     time,
     player,
+    level,
   });
 }

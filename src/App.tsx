@@ -60,7 +60,11 @@ export default function App() {
 
       onWinGame: async (time: number) => {
         console.info(time, getTime(time));
-        trackGameWin(time);
+        trackGameWin(time, level);
+
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        setIsShownLeaderboard(true);
 
         const promptPlayer = () => {
           let playerName;
@@ -84,25 +88,30 @@ export default function App() {
           const playerName = promptPlayer();
 
           if (playerName) {
-            const playerId = await addPayerToLeaderboard(playerName, time);
+            const playerId = await addPayerToLeaderboard(
+              playerName,
+              time,
+              level
+            );
 
             localStorage.setItem("playerName", playerName);
             defaultName.current = playerName;
 
             if (playerId) setOwnId(playerId);
 
-            trackSignGame(time, playerName);
+            trackSignGame(time, playerName, level);
 
-            await getLeaderboard().then(setLeaders);
+            await getLeaderboard(level).then(setLeaders);
           }
         }
-
-        setIsShownLeaderboard(true);
       },
 
       onLostGame: async (time: number) => {
         console.info(time, getTime(time));
-        trackGameLoss(time);
+        trackGameLoss(time, level);
+
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         setIsShownLeaderboard(true);
       },
     }),
@@ -117,8 +126,8 @@ export default function App() {
   };
 
   useEffect(() => {
-    getLeaderboard().then(setLeaders);
-  }, []);
+    getLeaderboard(level).then(setLeaders);
+  }, [level]);
 
   return (
     <>
