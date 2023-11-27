@@ -114,6 +114,10 @@ main.loading {
 footer {
   padding-top: 20px;
 }
+
+.invisible {
+  visibility: hidden;
+}
 /* extra */
 
 * {
@@ -141,6 +145,7 @@ table {
 td {
   padding: 0;
   font-size: 0;
+  white-space: nowrap;
 }
 
 button {
