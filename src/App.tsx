@@ -12,6 +12,8 @@ import {
 } from "./firebase";
 // @ts-ignore
 import bgImg from "./bg.jpg";
+// @ts-ignore
+import tapImg from "./tap.png";
 import "./style.css";
 
 const levels = {
@@ -32,6 +34,8 @@ const levels = {
     bombAmount: 100,
   },
 };
+
+const isTouch = "touchstart" in window || !!navigator.maxTouchPoints;
 
 const options = (Object.keys(levels) as (keyof typeof levels)[]).map((lev) => ({
   value: lev,
@@ -54,6 +58,7 @@ export default function App() {
   const [time, setTime] = useState(0);
   const [ownId, setOwnId] = useState("");
   const [isShownLeaderboard, setIsShownLeaderboard] = useState(false);
+  const [isShownInstructions, setIsShownInstructions] = useState(isTouch);
 
   const sortedLeaders = leaders.sort((a, b) => a.time - b.time).slice(0, 10);
 
@@ -126,6 +131,7 @@ export default function App() {
   const handleRestart = () => {
     setIsEnd(false);
     setIsShownLeaderboard(false);
+    setIsShownInstructions(false);
     setOwnId("");
     setTime(0);
     restart();
@@ -158,6 +164,29 @@ export default function App() {
           alt="bg"
           onLoad={() => setLoading(false)}
         />
+
+        {isShownInstructions && (
+          <div role="button" className="instruction" onClick={handleRestart}>
+            <h2>How to play</h2>
+
+            <div className="instruction__images">
+              <div className="instruction__image">
+                <span className="instruction__image-title">
+                  Tap{"\n"}to{"\n"}open
+                </span>
+                <img src={tapImg} alt="tap" />
+              </div>
+              <div className="instruction__image">
+                <span className="instruction__image-title">
+                  Long Tag{"\n"}to{"\n"}flag
+                </span>
+                <img src={tapImg} alt="tap" />
+              </div>
+            </div>
+
+            <h2>Tap to start</h2>
+          </div>
+        )}
 
         <header>
           <h1>Sapper Game</h1>
