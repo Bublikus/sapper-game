@@ -45,10 +45,13 @@ export const getTime = (time: number) =>
 
 export default function App() {
   const defaultName = useRef(localStorage.getItem("playerName"));
+  const timerRef = useRef<ReturnType<typeof setInterval>>();
 
   const [level, setLevel] = useState(options[0].value);
   const [loading, setLoading] = useState(true);
   const [leaders, setLeaders] = useState<Leader[]>([]);
+  const [isEnd, setIsEnd] = useState(false);
+  const [time, setTime] = useState(0);
   const [ownId, setOwnId] = useState("");
   const [isShownLeaderboard, setIsShownLeaderboard] = useState(false);
 
@@ -59,7 +62,7 @@ export default function App() {
       ...levels[level],
 
       onWinGame: async (time: number) => {
-        console.info(time, getTime(time));
+        setIsEnd(true);
         trackGameWin(time, level);
 
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -71,7 +74,7 @@ export default function App() {
 
           while (true) {
             const player = prompt(
-              `⏱️Time: ${getTime(time)}\n\nEnter your name: `,
+              `⏱️Time: ${getTime(time)}\n👤Enter your name: `,
               defaultName.current ?? undefined
             );
 
@@ -107,7 +110,7 @@ export default function App() {
       },
 
       onLostGame: async (time: number) => {
-        console.info(time, getTime(time));
+        setIsEnd(true);
         trackGameLoss(time, level);
 
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -118,15 +121,30 @@ export default function App() {
     [level]
   );
 
-  const { matrix, restart } = useSapperGame(config);
+  const { matrix, restart, startTime } = useSapperGame(config);
 
   const handleRestart = () => {
+    setIsEnd(false);
     setIsShownLeaderboard(false);
     setOwnId("");
+    setTime(0);
     restart();
   };
 
   useEffect(() => {
+    if (isEnd && startTime) {
+      clearInterval(timerRef.current);
+    } else if (startTime) {
+      timerRef.current = setInterval(() => {
+        const time = Math.floor((Date.now() - startTime) / 1000);
+        setTime(time);
+      }, 1000);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [startTime, isEnd]);
+
+  useEffect(() => {
+    setTime(0);
     getLeaderboard(level).then(setLeaders);
   }, [level]);
 
@@ -153,6 +171,9 @@ export default function App() {
                 onChange={(opt) => opt && setLevel(opt.value)}
               />
             </label>
+          </h3>
+          <h3>
+            ⏱️Time: <span>{getTime(time)}</span>
           </h3>
         </header>
 

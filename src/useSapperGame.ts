@@ -27,7 +27,11 @@ type Config = {
   onWinGame?(time: number): void;
   onLostGame?(time: number): void;
 };
-type UseSapperGame = (config?: Config) => { matrix: Matrix; restart(): void };
+type UseSapperGame = (config?: Config) => {
+  matrix: Matrix;
+  startTime: number;
+  restart(): void;
+};
 
 // Constants
 
@@ -266,5 +270,5 @@ export const useSapperGame: UseSapperGame = (config = {}) => {
     return [...Array(length)].map((_, i) => i);
   }
 
-  return { matrix, restart: resetGame };
+  return { matrix, restart: resetGame, startTime: startGameTimeRef.current };
 };
