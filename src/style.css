@@ -259,6 +259,7 @@ button.value-8 {
 
 .leaderboard td {
   font-size: 16px;
+  white-space: nowrap;
 }
 
 .leaderboard thead th {
