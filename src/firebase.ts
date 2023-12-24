@@ -107,8 +107,12 @@ export function trackGameLoss(time: number, level: string) {
   });
 }
 
-export function trackSignGame(time: number, player: string, level: string) {
-  logEvent(analytics, "sapper_sign_game", {
+export function trackSignGameFinish(
+  time: number,
+  player: string,
+  level: string
+) {
+  logEvent(analytics, "sapper_sign_game_finish", {
     time,
     player,
     level,

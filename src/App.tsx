@@ -1,19 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import Select from "react-select";
-import { useSapperGame } from "./useSapperGame";
 import {
   addPayerToLeaderboard,
   getLeaderboard,
   Leader,
   trackGameLoss,
   trackGameWin,
-  trackSignGame,
+  trackSignGameFinish,
 } from "./firebase";
-// @ts-ignore
-import bgImg from "./bg.jpg";
-// @ts-ignore
-import tapImg from "./tap.png";
+import { GameContainer } from "./components/GameContainer";
+import { Instructions } from "./components/Instructions";
+import { Leaderboard } from "./components/Leaderboard";
+import { PlayerModal } from "./components/PlayerModal";
+import { useSapperGame } from "./useSapperGame";
 import "./style.css";
 
 const levels = {
@@ -47,20 +47,28 @@ export const getTime = (time: number) =>
     time % 60 || ""
   ).padStart(2, Math.floor(time / 60) ? "0" : "_")}`;
 
+const defaultPlayer: Leader = {
+  id: "",
+  player: `doodler_${Math.floor(new Date().getTime() / 1000)}`,
+  time: 0,
+  level: Object.keys(levels)[0],
+  date: new Date().toLocaleString(),
+};
+
 export default function App() {
-  const defaultName = useRef(localStorage.getItem("playerName"));
   const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const isOverlay = useRef(false);
 
   const [level, setLevel] = useState(options[0].value);
-  const [loading, setLoading] = useState(true);
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [isEnd, setIsEnd] = useState(false);
   const [time, setTime] = useState(0);
-  const [ownId, setOwnId] = useState("");
+  const [player, setPlayer] = useState<Leader>(defaultPlayer);
+  const [showPlayerModal, setShowPlayerModal] = useState(false);
   const [isShownLeaderboard, setIsShownLeaderboard] = useState(false);
   const [isShownInstructions, setIsShownInstructions] = useState(isTouch);
 
-  const sortedLeaders = leaders.sort((a, b) => a.time - b.time).slice(0, 10);
+  isOverlay.current = isShownLeaderboard || isShownInstructions;
 
   const config = useMemo(
     () => ({
@@ -71,49 +79,12 @@ export default function App() {
         trackGameWin(time, level);
 
         await new Promise((resolve) => setTimeout(resolve, 1000));
-
         setIsShownLeaderboard(true);
-
         await new Promise((resolve) => setTimeout(resolve, 500));
 
-        const promptPlayer = () => {
-          let playerName;
-
-          while (true) {
-            const player = prompt(
-              `Time: ⏱️${getTime(time)}\n👤Enter your name: `,
-              defaultName.current ?? undefined
-            );
-
-            playerName = player?.trim().slice(0, 50);
-
-            if (playerName !== null && playerName !== "") break;
-          }
-
-          return playerName;
-        };
-
         const oneHour = 60 * 60 * 1000;
-        if (time && !Number.isNaN(+time) && time < oneHour) {
-          const playerName = promptPlayer();
-
-          if (playerName) {
-            const playerId = await addPayerToLeaderboard(
-              playerName,
-              time,
-              level
-            );
-
-            localStorage.setItem("playerName", playerName);
-            defaultName.current = playerName;
-
-            if (playerId) setOwnId(playerId);
-
-            trackSignGame(time, playerName, level);
-
-            await getLeaderboard(level).then(setLeaders);
-          }
-        }
+        if (time && !Number.isNaN(+time) && time < oneHour)
+          setShowPlayerModal(true);
       },
 
       onLostGame: async (time: number) => {
@@ -134,9 +105,20 @@ export default function App() {
     setIsEnd(false);
     setIsShownLeaderboard(false);
     setIsShownInstructions(false);
-    setOwnId("");
+    setPlayer(defaultPlayer);
     setTime(0);
     restart();
+  };
+
+  const onPlayerModalClose = async (playerName: string) => {
+    setShowPlayerModal(false);
+
+    if (time && playerName) {
+      const playerId = await addPayerToLeaderboard(playerName, time, level);
+      if (playerId) setPlayer((prev) => ({ ...prev, id: playerId }));
+      trackSignGameFinish(time, playerName, level);
+      await getLeaderboard(level).then(setLeaders);
+    }
   };
 
   useEffect(() => {
@@ -156,133 +138,70 @@ export default function App() {
     getLeaderboard(level).then(setLeaders);
   }, [level]);
 
-  const getPrize = (i: number) => {
-    if (i === 0) {
-      return "🥇";
-    } else if (i === 1) {
-      return "🥈";
-    } else if (i === 2) {
-      return "🥉";
-    } else {
-      return "";
-    }
-  };
-
   return (
-    <>
-      {loading && <p className="loading">loading...</p>}
-      <main className={loading ? "loading" : ""}>
-        <img
-          className="bg"
-          src={bgImg}
-          alt="bg"
-          onLoad={() => setLoading(false)}
-        />
+    <GameContainer>
+      <Instructions open={isShownInstructions} onClose={handleRestart} />
 
-        {isShownInstructions && (
-          <div role="button" className="instruction" onClick={handleRestart}>
-            <h2>How to play</h2>
+      <header>
+        <h1>Sapper</h1>
+        <h3>
+          Level:
+          <label>
+            <Select
+              isSearchable={false}
+              defaultValue={options[0]}
+              options={options}
+              onChange={(opt) => opt && setLevel(opt.value)}
+            />
+          </label>
+        </h3>
+        <h3>
+          Time: <span>⏱️{getTime(time)}</span>
+        </h3>
+      </header>
 
-            <div className="instruction__images">
-              <div className="instruction__image">
-                <span className="instruction__image-title">
-                  Tap{"\n"}to{"\n"}open
-                </span>
-                <img src={tapImg} alt="tap" />
-              </div>
-              <div className="instruction__image">
-                <span className="instruction__image-title">
-                  Long Tag{"\n"}to{"\n"}flag
-                </span>
-                <img src={tapImg} alt="tap" />
-              </div>
-            </div>
+      <table>
+        <tbody>
+          {matrix.map((row, yi) => (
+            <tr key={yi}>
+              {row.map((cell, xi) => (
+                <td key={xi}>
+                  <button
+                    type="button"
+                    disabled={cell.isOpen}
+                    className={clsx("tail", {
+                      open: cell.isOpen,
+                      [`value-${cell.value}`]: cell.isOpen,
+                    })}
+                    {...cell.actions}
+                  >
+                    {cell.isOpen || cell.isFlagged ? cell.value || "" : ""}
+                  </button>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-            <h2>Tap to start</h2>
-          </div>
-        )}
+      <footer>
+        <h4>Long press to flag a tile</h4>
+      </footer>
 
-        <header>
-          <h1>Sapper Game</h1>
-          <h3>
-            Level:
-            <label>
-              <Select
-                isSearchable={false}
-                defaultValue={options[0]}
-                options={options}
-                onChange={(opt) => opt && setLevel(opt.value)}
-              />
-            </label>
-          </h3>
-          <h3>
-            Time: <span>⏱️{getTime(time)}</span>
-          </h3>
-        </header>
+      <Leaderboard
+        open={isShownLeaderboard}
+        active={!isShownInstructions && !showPlayerModal}
+        player={player}
+        leaders={leaders}
+        onClose={handleRestart}
+      />
 
-        <table>
-          <tbody>
-            {matrix.map((row, yi) => (
-              <tr key={yi}>
-                {row.map((cell, xi) => (
-                  <td key={xi}>
-                    <button
-                      type="button"
-                      disabled={cell.isOpen}
-                      className={clsx({
-                        open: cell.isOpen,
-                        [`value-${cell.value}`]: cell.isOpen,
-                      })}
-                      {...cell.actions}
-                    >
-                      {cell.isOpen || cell.isFlagged ? cell.value || "" : ""}
-                    </button>
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {isShownLeaderboard && (
-          <div role="button" className="leaderboard" onClick={handleRestart}>
-            <div className="leaderboard-box">
-              <h3>Leaderboard</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Player</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedLeaders.map((leader, i) => (
-                    <tr
-                      key={leader.id}
-                      className={leader.id === ownId ? "strong" : ""}
-                    >
-                      <td>
-                        {leader.id === ownId ? "→ " : ""}
-                        {i + 1}
-                        <span>
-                          {getPrize(i) || <span className="invisible">🥉</span>}
-                        </span>
-                      </td>
-                      <td>{leader.player.slice(0, 20).padEnd(20, ".")}</td>
-                      <td>⏱️{getTime(leader.time)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        <footer>
-          <h4>Hint: Use long press to flag a tile</h4>
-        </footer>
-      </main>
-    </>
+      <PlayerModal
+        open={showPlayerModal}
+        score={time}
+        defaultName={defaultPlayer.player}
+        onClose={onPlayerModalClose}
+      />
+    </GameContainer>
   );
 }
