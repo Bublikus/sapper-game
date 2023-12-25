@@ -20,7 +20,7 @@ export const Instructions: React.FC<LeaderboardProps> = ({ open, onClose }) => {
         </div>
         <div className="instruction__image">
           <span className="instruction__image-title">
-            Long Tag{"\n"}to{"\n"}flag
+            Long press{"\n"}to{"\n"}flag
           </span>
           <img src={tapImg} alt="tap" />
         </div>
