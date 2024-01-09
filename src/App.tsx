@@ -49,7 +49,7 @@ export const getTime = (time: number) =>
 
 const defaultPlayer: Leader = {
   id: "",
-  player: `doodler_${Math.floor(new Date().getTime() / 1000)}`,
+  player: `sapper_${Math.floor(new Date().getTime() / 1000)}`,
   time: 0,
   level: Object.keys(levels)[0],
   date: new Date().toLocaleString(),
