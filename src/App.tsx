@@ -51,7 +51,7 @@ const defaultPlayer: Leader = {
   id: "",
   player: `sapper_${Math.floor(new Date().getTime() / 1000)}`,
   time: 0,
-  level: Object.keys(levels)[0],
+  level: Object.keys(levels)[1],
   date: new Date().toLocaleString(),
 };
 
@@ -59,7 +59,7 @@ export default function App() {
   const timerRef = useRef<ReturnType<typeof setInterval>>();
   const isOverlay = useRef(false);
 
-  const [level, setLevel] = useState(options[0].value);
+  const [level, setLevel] = useState(options[1].value);
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [isEnd, setIsEnd] = useState(false);
   const [time, setTime] = useState(0);
@@ -149,7 +149,7 @@ export default function App() {
           <label>
             <Select
               isSearchable={false}
-              defaultValue={options[0]}
+              defaultValue={options[1]}
               options={options}
               onChange={(opt) => opt && setLevel(opt.value)}
             />
